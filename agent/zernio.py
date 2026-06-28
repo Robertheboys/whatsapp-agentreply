@@ -86,6 +86,42 @@ async def enviar_mensaje(conversation_id: str, account_id: str, texto: str) -> b
         return False
 
 
+# ── Envío de imagen ──────────────────────────────────────────
+async def enviar_imagen(
+    conversation_id: str,
+    account_id: str,
+    image_url: str,
+    caption: str | None = None,
+) -> bool:
+    """
+    Envía una imagen a una conversación vía Zernio.
+    POST /v1/inbox/conversations/{conversationId}/messages
+    Usa attachmentUrl + attachmentType=image (JSON body).
+    caption es opcional; si se provee, llega como texto acompañante.
+    """
+    if not ZERNIO_API_KEY:
+        logger.error("ZERNIO_API_KEY no configurada: no se puede enviar imagen.")
+        return False
+    url = f"{ZERNIO_BASE_URL}/inbox/conversations/{conversation_id}/messages"
+    payload: dict = {
+        "accountId": account_id,
+        "attachmentUrl": image_url,
+        "attachmentType": "image",
+    }
+    if caption:
+        payload["message"] = caption
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            r = await client.post(url, json=payload, headers=_headers())
+        if r.status_code >= 300:
+            logger.error("Zernio enviar_imagen %s: %s", r.status_code, r.text[:300])
+            return False
+        return True
+    except httpx.HTTPError as e:
+        logger.error("Zernio enviar_imagen error de red: %s", e)
+        return False
+
+
 # ── Indicador "escribiendo…" (best-effort, da realismo) ───────
 async def enviar_typing(conversation_id: str, account_id: str) -> None:
     """
@@ -209,37 +245,4 @@ async def get_ad_analytics(ad_id: str, from_date: str, to_date: str) -> dict | N
     GET /v1/ads/{adId}/analytics?fromDate&toDate — métricas (incluye `spend`) en
     un rango de fechas (YYYY-MM-DD). None si falla.
     """
-    if not ZERNIO_API_KEY or not ad_id:
-        return None
-    url = f"{ZERNIO_BASE_URL}/ads/{ad_id}/analytics"
-    params = {"fromDate": from_date, "toDate": to_date}
-    try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-            r = await client.get(url, params=params, headers=_headers())
-        if r.status_code >= 300:
-            logger.warning("Zernio get_ad_analytics %s: %s", r.status_code, r.text[:200])
-            return None
-        return r.json()
-    except (httpx.HTTPError, ValueError) as e:
-        logger.warning("Zernio get_ad_analytics error: %s", e)
-        return None
-
-
-# ── CLI: provisionar el dataset CTWA por número (para anuncios/ROAS) ──
-# Uso: python -m agent.zernio provision <account_id> [<account_id> ...]
-if __name__ == "__main__":
-    import asyncio
-    import sys
-
-    if len(sys.argv) >= 3 and sys.argv[1] == "provision":
-        async def _main() -> None:
-            for account_id in sys.argv[2:]:
-                res = await provision_dataset(account_id)
-                if res:
-                    print(f"OK  {account_id}: dataset = {res.get('datasetId') or res}")
-                else:
-                    print(f"ERROR  {account_id}: no se pudo provisionar (revisa ZERNIO_API_KEY)")
-
-        asyncio.run(_main())
-    else:
-        print("Uso: python -m agent.zernio provision <account_id> [<account_id> ...]")
+    if not ZERNIO_A
