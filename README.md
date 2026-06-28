@@ -13,6 +13,28 @@ queda listo. No necesitas saber programar.
 
 ---
 
+## ⚡ Empezar en 3 pasos
+
+> Necesitas un **agente de terminal** (Claude Code, Gemini CLI, Codex CLI o Cursor) y tus claves de
+> [OpenRouter](https://openrouter.ai/keys) y [Zernio](https://zernio.com). *(ChatGPT/Gemini web no
+> sirven para esto: no pueden ejecutar en tu PC.)*
+
+```bash
+# 1. Clona el repo
+git clone https://github.com/Robertheboys/whatsapp-agentkit-zernio.git
+cd whatsapp-agentkit-zernio
+```
+
+```bash
+# 2. Abre tu agente en la carpeta (ejemplo con Claude Code)
+claude
+```
+
+**3.** Dile: **"Configura este repositorio para mí"** (o `/setup-agente` en Claude Code).
+El agente te entrevista, pega tus claves en `.env`, prueba el bot y te guía el deploy. ✅
+
+---
+
 ## ¿Qué hace?
 
 - 🤖 **Auto-responde** los WhatsApp de tus negocios con IA, 24/7.
