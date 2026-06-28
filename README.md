@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/banner.png" alt="AgentKit WhatsApp — Zernio + OpenRouter" width="100%">
+</p>
+
 # AgentKit WhatsApp — Zernio + OpenRouter
 
 Conecta uno o más números de **WhatsApp** (vía [Zernio](https://zernio.com)) con un cerebro de
