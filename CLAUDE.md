@@ -68,13 +68,23 @@ Pregunta cuántos números/negocios va a conectar. Por CADA uno, una pregunta a 
 2. `ZERNIO_API_KEY` — dashboard de Zernio → API Keys.
 3. `account_id` de cada número — dashboard de Zernio → Connections/API (identifica cada negocio).
 4. Genera `ZERNIO_WEBHOOK_SECRET` y `REPORT_TOKEN` aleatorios (ej. `openssl rand -hex 32`).
-5. Pregunta: ¿quiere anuncios de Meta + ROAS? Si SÍ:
-   - `ENABLE_ADS=true`. NO necesita token de Meta: basta con que conecte su cuenta de
-     Meta Ads a Zernio (dashboard → Ads); el kit obtiene nombre de anuncio y gasto vía la
-     Ads API de Zernio con la misma `ZERNIO_API_KEY`.
-   - `META_ACCESS_TOKEN` es OPCIONAL (respaldo directo a Meta). `meta_ad_account_id` por
-     negocio solo se usa si activa ese respaldo.
-   - Explica que esto permite ver de qué anuncio viene cada chat y medir retorno.
+5. Pregunta: ¿quiere anuncios de Meta + ROAS? Si SÍ, pon `ENABLE_ADS=true` y PREGUNTA qué
+   modo de atribución prefiere (explica el límite de conexiones de Zernio antes de elegir):
+
+   > Capturar de qué anuncio viene el chat y enviar conversiones a Meta NO consume una
+   > conexión extra de Zernio (usa el token de tu número de WhatsApp). Solo ver el
+   > nombre del anuncio y el gasto dentro de la app necesita una de estas opciones:
+
+   - **A) Solo Zernio (recomendado si tienes cupo de conexiones):** conecta tu cuenta de
+     Meta Ads a Zernio (dashboard → Ads). El kit obtiene nombre y gasto con la misma
+     `ZERNIO_API_KEY`. Deja `META_ACCESS_TOKEN` vacío. OJO: Meta Ads cuenta como una
+     conexión de Zernio; si ya usaste tu cupo (p. ej. 2 números de WhatsApp), elige B o C.
+   - **B) Token de Meta directo (si te quedaste sin cupo en Zernio):** define
+     `META_ACCESS_TOKEN` (scope `ads_read`) y `meta_ad_account_id` por negocio. Independiente
+     del límite de Zernio.
+   - **C) Solo conversiones (lo más simple):** no conectes nada extra ni pongas token. El
+     kit captura el anuncio y envía las conversiones; el ROAS lo ves en el Administrador de
+     Anuncios de Meta. (Provisiona el dataset CTWA: `python -m agent.zernio provision <account_id>`.)
 
 ### FASE 4 — Generar `config/businesses.yaml`
 A partir de la entrevista, escribe `config/businesses.yaml` (usa `config/businesses.example.yaml`

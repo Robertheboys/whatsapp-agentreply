@@ -168,6 +168,20 @@ ventana de 24h. Las plantillas solo hacen falta para iniciar conversaciones en f
 **¿Qué modelo de IA usa?** El que pongas por negocio (`modelo:` en el YAML). Por defecto
 `openai/gpt-4o-mini` (barato y bueno). Cualquier modelo de OpenRouter sirve.
 
+**Para los anuncios, ¿qué es más fácil: Zernio o un token de Meta?** Zernio, sin comparación.
+Solo conectas tu cuenta de Meta Ads a Zernio (1 clic con OAuth en el dashboard) y reutilizas la
+misma `ZERNIO_API_KEY` — sin crear una app de Meta, sin generar tokens que caducan, sin manejar
+scopes. El `META_ACCESS_TOKEN` directo es solo un respaldo opcional.
+
+**¿Y si Zernio me limita las conexiones (ej. 2) y ya las usé con mis 2 WhatsApp?** No es problema
+para lo esencial: **capturar de qué anuncio viene cada chat y enviar las conversiones a Meta
+(LeadSubmitted/Purchase) NO consumen una conexión extra** — usan el token de tu propio número de
+WhatsApp. Lo único que pide una conexión adicional (o un `META_ACCESS_TOKEN`) es ver el **nombre
+del anuncio y el gasto dentro de esta app**. Si te quedaste sin cupo, tienes 2 salidas: usar un
+token de Meta directo (independiente del límite de Zernio), o simplemente leer el **ROAS en el
+Administrador de Anuncios de Meta**, al que igual le llegan tus conversiones. El comando
+`/setup-agente` te deja elegir entre estos modos.
+
 ## Licencia
 
 MIT — ver [LICENSE](LICENSE). Construido sobre la idea del kit `whatsapp-agentkit`.
