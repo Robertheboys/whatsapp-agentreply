@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Forzar un secreto conocido ANTES de importar el módulo (se lee en import).
 os.environ["ZERNIO_WEBHOOK_SECRET"] = "secreto-de-prueba-123"
 
-from agent import zernio  # noqa: E402
+from agent import brain, zernio  # noqa: E402
 from agent.models import parsear_message_received  # noqa: E402
 
 
@@ -92,6 +92,25 @@ def test_parseo_captura_ctwa():
     assert msg.metadata_ctwa.get("ctwa_source_id") == "1200000000"
     assert msg.metadata_ctwa.get("ctwa_headline") == "Oferta de hoy"
     assert "otro_campo" not in msg.metadata_ctwa  # solo se quedan los ctwa_*
+
+
+def test_globos_separador():
+    texto = "Hola, ¿cómo estás?\n---\nTe cuento los horarios.\n---\n¿Te ayudo con algo más?"
+    globos = brain.dividir_en_globos(texto)
+    assert len(globos) == 3
+    assert globos[0] == "Hola, ¿cómo estás?"
+    assert "---" not in "".join(globos)
+
+
+def test_globos_una_sola_frase():
+    assert brain.dividir_en_globos("Sí, abrimos a las 9am.") == ["Sí, abrimos a las 9am."]
+
+
+def test_globos_por_parrafos_y_tope():
+    texto = "uno\n\ndos\n\ntres\n\ncuatro\n\ncinco"
+    globos = brain.dividir_en_globos(texto, max_globos=4)
+    assert len(globos) == 4
+    assert "cuatro" in globos[-1] and "cinco" in globos[-1]  # exceso unido al último
 
 
 def _run_all():

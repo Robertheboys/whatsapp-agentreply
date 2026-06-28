@@ -13,6 +13,7 @@ Puntos clave:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import os
@@ -30,6 +31,17 @@ load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 REPORT_TOKEN = os.getenv("REPORT_TOKEN", "")
+
+# Respuestas en varios "globos" (mensajes) para verse más humano.
+MULTI_BUBBLE = os.getenv("MULTI_BUBBLE", "true").lower() in ("1", "true", "yes", "si", "sí")
+BUBBLE_MAX = int(os.getenv("BUBBLE_MAX", "4"))
+BUBBLE_DELAY_MIN = float(os.getenv("BUBBLE_DELAY_MIN", "0.6"))
+BUBBLE_DELAY_MAX = float(os.getenv("BUBBLE_DELAY_MAX", "4.0"))
+
+
+def _delay_globo(texto: str) -> float:
+    """Pausa (s) antes de un globo, proporcional a su largo (simula tipeo)."""
+    return max(BUBBLE_DELAY_MIN, min(len(texto) / 45.0, BUBBLE_DELAY_MAX))
 logging.basicConfig(level=logging.DEBUG if ENVIRONMENT == "development" else logging.INFO)
 logger = logging.getLogger("agente")
 
@@ -115,11 +127,21 @@ async def _procesar_mensaje(msg, negocio) -> None:
             modelo=negocio.modelo,
         )
 
-        # Guardar turnos y responder por WhatsApp
+        # Partir en globos (1 o más mensajes) para verse más humano
+        globos = brain.dividir_en_globos(respuesta, BUBBLE_MAX) if MULTI_BUBBLE else [respuesta]
+
+        # Guardar el turno (texto unido y limpio, sin separadores)
         await memory.guardar_mensaje(msg.account_id, msg.contacto, "user", msg.texto)
-        await memory.guardar_mensaje(msg.account_id, msg.contacto, "assistant", respuesta)
-        await zernio.enviar_mensaje(msg.conversation_id, msg.account_id, respuesta)
-        logger.info("Respuesta enviada a %s (%s)", msg.contacto, negocio.nombre)
+        await memory.guardar_mensaje(msg.account_id, msg.contacto, "assistant", "\n\n".join(globos))
+
+        # Enviar cada globo; si son varios, "escribiendo…" + pausa breve entre ellos
+        multi = len(globos) > 1
+        for globo in globos:
+            if multi:
+                await zernio.enviar_typing(msg.conversation_id, msg.account_id)
+                await asyncio.sleep(_delay_globo(globo))
+            await zernio.enviar_mensaje(msg.conversation_id, msg.account_id, globo)
+        logger.info("Respuesta (%d globo/s) a %s (%s)", len(globos), msg.contacto, negocio.nombre)
     except Exception as e:  # noqa: BLE001 — no romper el worker de background
         logger.error("Error procesando mensaje: %s", e)
 

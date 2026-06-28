@@ -86,6 +86,23 @@ async def enviar_mensaje(conversation_id: str, account_id: str, texto: str) -> b
         return False
 
 
+# ── Indicador "escribiendo…" (best-effort, da realismo) ───────
+async def enviar_typing(conversation_id: str, account_id: str) -> None:
+    """
+    POST /v1/inbox/conversations/{conversationId}/typing
+    Muestra "escribiendo…" en WhatsApp (hasta 25 s) y marca como leído el último
+    mensaje entrante. Es best-effort: cualquier error se ignora.
+    """
+    if not ZERNIO_API_KEY:
+        return
+    url = f"{ZERNIO_BASE_URL}/inbox/conversations/{conversation_id}/typing"
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            await client.post(url, json={"accountId": account_id}, headers=_headers())
+    except httpx.HTTPError as e:
+        logger.debug("Zernio typing (ignorado): %s", e)
+
+
 # ── Lectura de conversación (metadata CTWA) ───────────────────
 async def get_conversation(conversation_id: str) -> dict | None:
     """

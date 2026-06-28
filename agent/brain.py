@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
@@ -15,6 +16,17 @@ from openai import AsyncOpenAI
 load_dotenv()
 
 logger = logging.getLogger("agente")
+
+# Estilo WhatsApp: respuestas naturales y, cuando aplique, repartidas en varios
+# mensajes cortos (globos). El modelo separa cada globo con una línea de solo "---".
+ESTILO_WHATSAPP = (
+    "\n\n## Estilo de respuesta (WhatsApp)\n"
+    "- Escribe como en un chat real de WhatsApp: natural, cercano y al grano.\n"
+    "- Si tu respuesta tiene varias ideas, repártela en VARIOS mensajes cortos en vez de un "
+    "bloque largo. Separa cada mensaje con una línea que contenga solo: ---\n"
+    "- Si una sola frase basta, responde en un único mensaje (sin ---).\n"
+    "- No uses más de 4 mensajes. Nada de listas numeradas largas ni párrafos enormes."
+)
 
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
@@ -63,7 +75,7 @@ async def generar_respuesta(
     if not mensaje or len(mensaje.strip()) < 1:
         return "¿Podrías escribir tu consulta? Estoy para ayudarte."
 
-    mensajes = [{"role": "system", "content": system_prompt}]
+    mensajes = [{"role": "system", "content": system_prompt + ESTILO_WHATSAPP}]
     mensajes.extend(historial)
     mensajes.append({"role": "user", "content": mensaje})
 
@@ -89,3 +101,34 @@ async def generar_respuesta(
     except Exception as e:  # noqa: BLE001 — degradar con mensaje al cliente
         logger.error("Error OpenRouter: %s", e)
         return MENSAJE_ERROR
+
+
+# Línea separadora de globos: solo guiones o pipes (--- , |||).
+_SEP_GLOBOS = re.compile(r"(?m)^\s*(?:-{3,}|\|{2,})\s*$")
+
+
+def dividir_en_globos(texto: str, max_globos: int = 4) -> list[str]:
+    """
+    Divide la respuesta del modelo en 1 o más "globos" (mensajes de WhatsApp).
+
+    1) Si el modelo usó el separador (línea con solo --- o |||), corta por ahí.
+    2) Si no, corta por párrafos (líneas en blanco).
+    3) Si tampoco, devuelve un único globo.
+    Limita a `max_globos`: el exceso se une al último para no spamear.
+    """
+    texto = (texto or "").strip()
+    if not texto:
+        return [""]
+
+    if _SEP_GLOBOS.search(texto):
+        partes = _SEP_GLOBOS.split(texto)
+    else:
+        partes = re.split(r"\n\s*\n", texto)
+
+    globos = [p.strip() for p in partes if p.strip()]
+    if not globos:
+        return [texto]
+
+    if len(globos) > max_globos:
+        globos = globos[: max_globos - 1] + [" ".join(globos[max_globos - 1 :])]
+    return globos
