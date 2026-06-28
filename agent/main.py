@@ -32,45 +32,6 @@ load_dotenv()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 REPORT_TOKEN = os.getenv("REPORT_TOKEN", "")
 
-# URLs de imágenes de producto (deben ser públicas; alojar en GitHub raw o similar)
-FLYER_IMAGE_URL = os.getenv("FLYER_IMAGE_URL", "")   # flyer de lista de precios
-CELDA_IMAGE_URL = os.getenv("CELDA_IMAGE_URL", "")   # foto de la celda individual
-CAJA_IMAGE_URL = os.getenv("CAJA_IMAGE_URL", "")     # foto de la caja/etiqueta
-
-# Texto de la respuesta rápida de precios (sin imagen: Pedro lo genera también por IA;
-# este texto se manda junto al flyer como "caption" del segundo mensaje)
-PRECIO_RAPIDO = """🔋 CELDAS DE LITIO 18650 EVE
-Uso Profesional · 100% Originales
-
-📋 LISTA DE PRECIOS:
-▫️ 50 unidades → S/ 8.00 c/u
-▫️ 100 unidades → S/ 7.00 c/u
-▫️ 500 unidades → S/ 6.80 c/u
-▫️ 1,000 unidades → S/ 6.50 c/u
-
-⚡ Especificaciones:
-• Modelo: ICR 18650/26V
-• Capacidad: 2.55Ah / 2550mAh
-• Marca EVE original
-• No genéricas, no recicladas
-
-📦 Stock disponible · Envíos a todo Perú
-¿Cuántas unidades necesitas? 👇"""
-
-_PALABRAS_PRECIO = {
-    "precio", "precios", "costo", "costos", "cuánto", "cuanto", "vale",
-    "lista", "cotización", "cotizacion", "tarifa", "tarifas", "cuántos",
-    "cuantos", "cuestan", "cuesta", "cobran", "cobras", "valen",
-    "presupuesto", "oferta", "descuento",
-}
-
-
-def _es_pregunta_de_precios(texto: str) -> bool:
-    """Devuelve True si el mensaje parece una consulta de precios."""
-    palabras = set(texto.lower().split())
-    return bool(palabras & _PALABRAS_PRECIO)
-
-
 # Respuestas en varios "globos" (mensajes) para verse más humano.
 MULTI_BUBBLE = os.getenv("MULTI_BUBBLE", "true").lower() in ("1", "true", "yes", "si", "sí")
 BUBBLE_MAX = int(os.getenv("BUBBLE_MAX", "4"))
@@ -153,21 +114,6 @@ async def _procesar_mensaje(msg, negocio) -> None:
         # Asegurar fila de conversación
         await memory.upsert_conversacion(msg.conversation_id, msg.account_id, msg.contacto)
 
-        # Respuesta rápida de precios: si el mensaje pregunta por precios y tenemos el flyer,
-        # lo enviamos antes de la respuesta de IA.
-        if FLYER_IMAGE_URL and _es_pregunta_de_precios(msg.texto):
-            await zernio.enviar_typing(msg.conversation_id, msg.account_id)
-            await asyncio.sleep(0.8)
-            ok = await zernio.enviar_imagen(
-                msg.conversation_id,
-                msg.account_id,
-                FLYER_IMAGE_URL,
-            )
-            if ok:
-                await asyncio.sleep(1.0)
-                await zernio.enviar_mensaje(msg.conversation_id, msg.account_id, PRECIO_RAPIDO)
-                logger.info("Flyer de precios enviado a %s", msg.contacto)
-
         # Atribución de anuncio CTWA (opcional, one-shot)
         if ads.ENABLE_ADS:
             await _atribuir_anuncio(msg, negocio)
@@ -246,4 +192,54 @@ async def registrar_venta(
 ):
     """
     Registra una venta y dispara la conversión Purchase a Meta.
-    Body: { 
+    Body: { "conversation_id": "...", "amount": 49.0, "account_id": "...", "currency": "USD" }
+    """
+    if not ads.ENABLE_ADS:
+        raise HTTPException(status_code=404, detail="Anuncios desactivados")
+    _check_token((authorization or "").replace("Bearer ", "").strip())
+
+    data = await request.json()
+    conversation_id = str(data.get("conversation_id") or "").strip()
+    try:
+        amount = float(data.get("amount") or 0.0)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="amount debe ser numérico")
+    account_id = str(data.get("account_id") or "").strip()
+    moneda = str(data.get("currency") or "USD")
+    if not conversation_id:
+        raise HTTPException(status_code=400, detail="conversation_id requerido")
+
+    # Atribuir la venta al anuncio de la conversación (si lo hay)
+    conv = await memory.obtener_conversacion(conversation_id)
+    ad_source = memory.leer_ad_source(conv)
+    ad_id = ad_source.get("ctwa_source_id") if ad_source else None
+    await memory.registrar_venta(conversation_id, amount, ad_id)
+
+    enviado = False
+    if account_id and await memory.registrar_conversion(conversation_id, "Purchase", amount):
+        enviado = await zernio.enviar_conversion(
+            account_id=account_id,
+            conversation_id=conversation_id,
+            evento="Purchase",
+            event_id=f"purchase_{conversation_id}_{uuid.uuid4().hex[:8]}",
+            valor=amount,
+            moneda=moneda,
+        )
+        await memory.actualizar_estado_conversion(
+            conversation_id, "Purchase", "sent" if enviado else "error"
+        )
+
+    return {"status": "ok", "ad_id": ad_id, "purchase_enviado": enviado}
+
+
+@app.get("/reports/roas")
+async def reporte_roas(
+    dias: int = 30,
+    ad_account_id: str | None = None,
+    authorization: str | None = Header(default=None),
+):
+    """Reporte de ROAS por anuncio (ingresos ÷ gasto). Requiere token."""
+    if not ads.ENABLE_ADS:
+        raise HTTPException(status_code=404, detail="Anuncios desactivados")
+    _check_token((authorization or "").replace("Bearer ", "").strip())
+    return await ads.reporte_roas(ad_account_id=ad_account_id, dias=dias)
