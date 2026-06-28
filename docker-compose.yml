@@ -1,0 +1,14 @@
+services:
+  agente:
+    build: .
+    container_name: agente-whatsapp
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - .env
+    volumes:
+      # Persistencia de la base SQLite entre redeploys
+      - ./data:/app/data
+      # Config y conocimiento de cada negocio (editable sin rebuild)
+      - ./config:/app/config
+    restart: unless-stopped

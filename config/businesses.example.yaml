@@ -1,0 +1,42 @@
+# ════════════════════════════════════════════════════════════
+#  Configuración de negocios — PLANTILLA DE EJEMPLO
+#  Copia este archivo como config/businesses.yaml y pon TUS datos.
+#      cp config/businesses.example.yaml config/businesses.yaml
+#  config/businesses.yaml está en .gitignore (no se sube al repo).
+#  El comando /setup-agente puede generarlo por ti.
+# ════════════════════════════════════════════════════════════
+
+businesses:
+  # ── Negocio 1 (ejemplo) ─────────────────────────────────────
+  - zernio_account_id: "REEMPLAZA_ACCOUNT_ID_NUMERO_1"  # del dashboard de Zernio
+    nombre: "Cafetería El Buen Sabor"
+    agente: "Sofía"
+    # Modelo de OpenRouter (ver https://openrouter.ai/models). Barato y bueno por defecto.
+    modelo: "openai/gpt-4o-mini"
+    tono: "amigable y cercano"
+    # Carpeta dentro de config/knowledge/ con los archivos de este negocio (opcional).
+    knowledge_dir: "cafeteria"
+    # Solo si usas anuncios (ENABLE_ADS=true): tu cuenta publicitaria de Meta.
+    meta_ad_account_id: "act_000000000000000"
+    # System prompt: la personalidad del agente. Si lo dejas vacío, se genera uno
+    # automático con el nombre/tono/negocio de arriba.
+    system_prompt: |
+      Eres Sofía, la asistente virtual de Cafetería El Buen Sabor.
+      Tu tono es amigable y cercano. Respondes siempre en español, breve y útil.
+      Ayudas con horarios, menú, precios y ubicación.
+      Si no sabes algo, ofreces conectar con una persona del equipo.
+      Nunca inventes precios ni datos que no estén en tu información.
+
+  # ── Negocio 2 (ejemplo) — duplica el bloque por cada número ──
+  - zernio_account_id: "REEMPLAZA_ACCOUNT_ID_NUMERO_2"
+    nombre: "TecnoRepuestos"
+    agente: "Carlos"
+    modelo: "openai/gpt-4o-mini"
+    tono: "profesional y directo"
+    knowledge_dir: "tecnorepuestos"
+    meta_ad_account_id: "act_000000000000000"
+    system_prompt: |
+      Eres Carlos, el asistente virtual de TecnoRepuestos.
+      Tono profesional y directo. Respondes en español, claro y conciso.
+      Ayudas con disponibilidad de productos, precios y tiempos de entrega.
+      Si no tienes la información, ofreces escalar con el equipo de ventas.

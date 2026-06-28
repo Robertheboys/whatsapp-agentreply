@@ -1,0 +1,31 @@
+# ── Secretos y config local (NUNCA subir) ─────────────────────
+.env
+config/businesses.yaml
+config/session.yaml
+
+# ── Conocimiento privado de cada negocio ──────────────────────
+config/knowledge/*
+!config/knowledge/.gitkeep
+
+# ── Base de datos local ───────────────────────────────────────
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# ── Logs de herramientas ──────────────────────────────────────
+.gstack/
+
+# ── OS / IDE ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
