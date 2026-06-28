@@ -42,10 +42,11 @@ class BusinessConfig:
     system_prompt: str = ""
     knowledge_dir: str | None = None
     meta_ad_account_id: str | None = None
+    media: dict = field(default_factory=dict)  # { clave: {"url": ..., "desc": ...} }
     raw: dict = field(default_factory=dict)
 
     def construir_system_prompt(self) -> str:
-        """System prompt final: el definido + el conocimiento del negocio."""
+        """System prompt final: el definido + el conocimiento + las imágenes disponibles."""
         base = self.system_prompt.strip() or (
             f"Eres {self.agente}, el asistente virtual de {self.nombre}. "
             f"Tu tono es {self.tono}. Responde siempre en español, de forma breve y útil. "
@@ -54,7 +55,24 @@ class BusinessConfig:
         conocimiento = self._cargar_conocimiento()
         if conocimiento:
             base += "\n\n## Información del negocio\n" + conocimiento
+        imagenes = self._instrucciones_imagenes()
+        if imagenes:
+            base += imagenes
         return base
+
+    def _instrucciones_imagenes(self) -> str:
+        """Lista las imágenes que el agente puede enviar y cómo hacerlo."""
+        if not self.media:
+            return ""
+        lineas = [
+            "\n\n## Imágenes que puedes enviar",
+            "Para enviar una imagen, escribe en su PROPIA línea: [IMG:clave]",
+            "Usa SOLO estas claves (no inventes otras). Pon un texto breve antes del [IMG:...].",
+        ]
+        for clave, info in self.media.items():
+            desc = (info or {}).get("desc", "")
+            lineas.append(f"- {clave}: {desc}")
+        return "\n".join(lineas)
 
     def _cargar_conocimiento(self) -> str:
         carpeta = self.knowledge_dir
@@ -126,6 +144,7 @@ def cargar_negocios(path: str = CONFIG_PATH) -> dict[str, BusinessConfig]:
             system_prompt=str(item.get("system_prompt") or ""),
             knowledge_dir=item.get("knowledge_dir"),
             meta_ad_account_id=item.get("meta_ad_account_id"),
+            media=item.get("media") or {},
             raw=item,
         )
         indice[account_id] = cfg

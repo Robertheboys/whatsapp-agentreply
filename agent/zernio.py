@@ -86,6 +86,37 @@ async def enviar_mensaje(conversation_id: str, account_id: str, texto: str) -> b
         return False
 
 
+async def enviar_imagen(
+    conversation_id: str, account_id: str, image_url: str, caption: str = ""
+) -> bool:
+    """
+    Envía una imagen (con texto opcional como caption).
+    POST /v1/inbox/conversations/{conversationId}/messages con attachmentUrl/attachmentType.
+    La URL debe ser PÚBLICAMENTE accesible.
+    """
+    if not ZERNIO_API_KEY:
+        logger.error("ZERNIO_API_KEY no configurada: no se puede enviar imagen.")
+        return False
+    url = f"{ZERNIO_BASE_URL}/inbox/conversations/{conversation_id}/messages"
+    payload: dict = {
+        "accountId": account_id,
+        "attachmentUrl": image_url,
+        "attachmentType": "image",
+    }
+    if caption:
+        payload["message"] = caption
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            r = await client.post(url, json=payload, headers=_headers())
+        if r.status_code >= 300:
+            logger.error("Zernio enviar_imagen %s: %s", r.status_code, r.text[:300])
+            return False
+        return True
+    except httpx.HTTPError as e:
+        logger.error("Zernio enviar_imagen error de red: %s", e)
+        return False
+
+
 # ── Indicador "escribiendo…" (best-effort, da realismo) ───────
 async def enviar_typing(conversation_id: str, account_id: str) -> None:
     """

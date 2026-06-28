@@ -127,21 +127,35 @@ async def _procesar_mensaje(msg, negocio) -> None:
             modelo=negocio.modelo,
         )
 
-        # Partir en globos (1 o más mensajes) para verse más humano
-        globos = brain.dividir_en_globos(respuesta, BUBBLE_MAX) if MULTI_BUBBLE else [respuesta]
+        # Partir en partes (texto y/o imágenes) — 1 o más mensajes, más humano
+        if MULTI_BUBBLE:
+            partes = brain.parsear_respuesta(respuesta, negocio.media, BUBBLE_MAX)
+        else:
+            partes = [("texto", respuesta, None)]
 
-        # Guardar el turno (texto unido y limpio, sin separadores)
+        # Guardar el turno en el historial (texto; las imágenes se marcan como [imagen])
+        resumen = []
+        for tipo, contenido, caption in partes:
+            if tipo == "imagen":
+                resumen.append((f"{caption} " if caption else "") + "[imagen]")
+            else:
+                resumen.append(contenido)
         await memory.guardar_mensaje(msg.account_id, msg.contacto, "user", msg.texto)
-        await memory.guardar_mensaje(msg.account_id, msg.contacto, "assistant", "\n\n".join(globos))
+        await memory.guardar_mensaje(
+            msg.account_id, msg.contacto, "assistant", "\n\n".join(resumen).strip()
+        )
 
-        # Enviar cada globo; si son varios, "escribiendo…" + pausa breve entre ellos
-        multi = len(globos) > 1
-        for globo in globos:
+        # Enviar cada parte; si son varias, "escribiendo…" + pausa breve entre ellas
+        multi = len(partes) > 1
+        for tipo, contenido, caption in partes:
             if multi:
                 await zernio.enviar_typing(msg.conversation_id, msg.account_id)
-                await asyncio.sleep(_delay_globo(globo))
-            await zernio.enviar_mensaje(msg.conversation_id, msg.account_id, globo)
-        logger.info("Respuesta (%d globo/s) a %s (%s)", len(globos), msg.contacto, negocio.nombre)
+                await asyncio.sleep(_delay_globo(caption or contenido or ""))
+            if tipo == "imagen":
+                await zernio.enviar_imagen(msg.conversation_id, msg.account_id, contenido, caption or "")
+            else:
+                await zernio.enviar_mensaje(msg.conversation_id, msg.account_id, contenido)
+        logger.info("Respuesta (%d parte/s) a %s (%s)", len(partes), msg.contacto, negocio.nombre)
     except Exception as e:  # noqa: BLE001 — no romper el worker de background
         logger.error("Error procesando mensaje: %s", e)
 

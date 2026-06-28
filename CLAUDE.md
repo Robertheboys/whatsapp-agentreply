@@ -62,6 +62,14 @@ Pregunta cuántos números/negocios va a conectar. Por CADA uno, una pregunta a 
 5. Horario de atención.
 6. ¿Tiene archivos de info? Si sí, que los ponga en `config/knowledge/<carpeta-del-negocio>/`
    (acepta .txt, .md, .csv, .json). Si no, se usa lo que contó.
+7. **Imágenes que el bot pueda enviar** (opcional): ¿tiene fotos (menú, productos, local) con
+   URL pública? Pídele clave + URL + descripción de cada una para el bloque `media:`. El bot las
+   enviará escribiendo `[IMG:clave]`. Si las imágenes están solo en su PC, explícale que debe
+   subirlas a una URL pública (su web, Drive público, etc.).
+8. **Modelo de IA (OpenRouter)**: pregunta qué nivel quiere y escribe el `modelo` correspondiente.
+   Económico (recomendado para empezar): `openai/gpt-4o-mini`, `google/gemini-flash-1.5`,
+   `deepseek/deepseek-chat`. Equilibrado: `openai/gpt-4o`, `anthropic/claude-3.5-sonnet`.
+   Premium: `anthropic/claude-3.7-sonnet`. (Lista/precios actuales: https://openrouter.ai/models)
 
 ### FASE 3 — Credenciales (van SOLO a `.env`)
 1. `OPENROUTER_API_KEY` — https://openrouter.ai/keys
@@ -88,10 +96,12 @@ Pregunta cuántos números/negocios va a conectar. Por CADA uno, una pregunta a 
 
 ### FASE 4 — Generar `config/businesses.yaml`
 A partir de la entrevista, escribe `config/businesses.yaml` (usa `config/businesses.example.yaml`
-como plantilla): un bloque por negocio con `zernio_account_id`, `nombre`, `agente`, `modelo`,
-`tono`, `knowledge_dir`, `meta_ad_account_id` (si anuncios) y un `system_prompt` potente y
-específico. Incorpora el contenido de `config/knowledge/<negocio>/` al prompt o deja que lo
-cargue el código (ya lo hace `agent/config.py`).
+como plantilla): un bloque por negocio con `zernio_account_id`, `nombre`, `agente`, `modelo`
+(el nivel elegido en FASE 2), `tono`, `knowledge_dir`, `meta_ad_account_id` (si anuncios),
+`media` (si dio imágenes: `clave → {url, desc}`) y un `system_prompt` potente y específico. Si
+configuró imágenes, indícale al agente en el prompt cuándo enviarlas (ej. "cuando pidan el menú,
+envíalo con `[IMG:menu]`"). Incorpora el contenido de `config/knowledge/<negocio>/` al prompt o
+deja que lo cargue el código (ya lo hace `agent/config.py`).
 
 ### FASE 5 — Probar en local
 - `python tests/test_local.py` → el usuario chatea como cliente y revisa las respuestas por negocio.

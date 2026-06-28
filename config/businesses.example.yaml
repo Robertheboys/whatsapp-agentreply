@@ -6,24 +6,45 @@
 #  El comando /setup-agente puede generarlo por ti.
 # ════════════════════════════════════════════════════════════
 
+# ── Modelos de OpenRouter (campo `modelo`) ──────────────────────────────
+#  Elige según tu presupuesto. IDs y precios actuales en https://openrouter.ai/models
+#  💚 Económicos (centavos por miles de mensajes):
+#     openai/gpt-4o-mini · google/gemini-flash-1.5 · anthropic/claude-3.5-haiku
+#     deepseek/deepseek-chat (muy barato) · meta-llama/llama-3.3-70b-instruct
+#  💛 Equilibrados (mejor calidad, más caros):
+#     openai/gpt-4o · anthropic/claude-3.5-sonnet · google/gemini-pro-1.5
+#  ❤️ Premium (máxima calidad):
+#     anthropic/claude-3.7-sonnet · openai/o1 · openai/gpt-4o (último)
+# ────────────────────────────────────────────────────────────────────────
+
 businesses:
   # ── Negocio 1 (ejemplo) ─────────────────────────────────────
   - zernio_account_id: "REEMPLAZA_ACCOUNT_ID_NUMERO_1"  # del dashboard de Zernio
     nombre: "Cafetería El Buen Sabor"
     agente: "Sofía"
-    # Modelo de OpenRouter (ver https://openrouter.ai/models). Barato y bueno por defecto.
+    # Modelo de OpenRouter (ver lista de arriba). Económico y bueno por defecto.
     modelo: "openai/gpt-4o-mini"
     tono: "amigable y cercano"
     # Carpeta dentro de config/knowledge/ con los archivos de este negocio (opcional).
     knowledge_dir: "cafeteria"
     # Solo si usas anuncios (ENABLE_ADS=true): tu cuenta publicitaria de Meta.
     meta_ad_account_id: "act_000000000000000"
+    # Imágenes que el agente puede enviar (opcional). El bot las manda escribiendo
+    # [IMG:clave] en su respuesta. Las URLs deben ser PÚBLICAS.
+    media:
+      menu:
+        url: "https://tu-sitio.com/menu.jpg"
+        desc: "Foto del menú con precios"
+      local:
+        url: "https://tu-sitio.com/local.jpg"
+        desc: "Foto de nuestra cafetería"
     # System prompt: la personalidad del agente. Si lo dejas vacío, se genera uno
     # automático con el nombre/tono/negocio de arriba.
     system_prompt: |
       Eres Sofía, la asistente virtual de Cafetería El Buen Sabor.
       Tu tono es amigable y cercano. Respondes siempre en español, breve y útil.
       Ayudas con horarios, menú, precios y ubicación.
+      Cuando el cliente pida ver el menú, envíalo con [IMG:menu].
       Si no sabes algo, ofreces conectar con una persona del equipo.
       Nunca inventes precios ni datos que no estén en tu información.
 

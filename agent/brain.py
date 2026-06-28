@@ -132,3 +132,42 @@ def dividir_en_globos(texto: str, max_globos: int = 4) -> list[str]:
     if len(globos) > max_globos:
         globos = globos[: max_globos - 1] + [" ".join(globos[max_globos - 1 :])]
     return globos
+
+
+# Directiva de imagen que el modelo puede emitir: [IMG:clave] o [IMG:https://...]
+_IMG_RE = re.compile(r"\[IMG:\s*([^\]]+?)\s*\]", re.IGNORECASE)
+
+
+def _resolver_media(clave: str, media: dict) -> str | None:
+    clave = clave.strip()
+    if clave in media:
+        return (media.get(clave) or {}).get("url")
+    if clave.lower().startswith("http"):
+        return clave  # permite URL directa
+    return None
+
+
+def parsear_respuesta(respuesta: str, media: dict | None = None, max_globos: int = 4) -> list[tuple]:
+    """
+    Convierte la respuesta del modelo en una lista ordenada de partes:
+      ("texto", texto, None)         → mensaje de texto
+      ("imagen", url, caption)       → imagen (con texto opcional como caption)
+
+    Detecta directivas [IMG:clave] (clave de la galería del negocio) o [IMG:https://...].
+    Las claves desconocidas se ignoran (se queda solo el texto).
+    """
+    media = media or {}
+    partes: list[tuple] = []
+    for globo in dividir_en_globos(respuesta, max_globos):
+        urls = [
+            url for m in _IMG_RE.finditer(globo) if (url := _resolver_media(m.group(1), media))
+        ]
+        texto = _IMG_RE.sub("", globo).strip()
+        if urls:
+            for i, url in enumerate(urls):
+                partes.append(("imagen", url, texto if i == 0 else ""))
+        elif texto:
+            partes.append(("texto", texto, None))
+    if not partes:
+        partes = [("texto", (respuesta or "").strip(), None)]
+    return partes

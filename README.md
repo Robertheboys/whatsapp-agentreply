@@ -201,8 +201,19 @@ ventana de 24h. Las plantillas solo hacen falta para iniciar conversaciones en f
 
 **¿Puedo conectar más de 2 números?** Sí, agrega un bloque por número en `config/businesses.yaml`.
 
-**¿Qué modelo de IA usa?** El que pongas por negocio (`modelo:` en el YAML). Por defecto
-`openai/gpt-4o-mini` (barato y bueno). Cualquier modelo de OpenRouter sirve.
+**¿Qué modelos de IA puedo usar?** Cualquiera de [OpenRouter](https://openrouter.ai/models),
+configurable por negocio (`modelo:` en el YAML). Por nivel:
+- 💚 **Económicos** (centavos por miles de mensajes): `openai/gpt-4o-mini`, `google/gemini-flash-1.5`,
+  `deepseek/deepseek-chat`, `anthropic/claude-3.5-haiku`.
+- 💛 **Equilibrados**: `openai/gpt-4o`, `anthropic/claude-3.5-sonnet`, `google/gemini-pro-1.5`.
+- ❤️ **Premium**: `anthropic/claude-3.7-sonnet`, `openai/o1`.
+
+El `/setup-agente` te pregunta cuál quieres. Por defecto usa el económico `openai/gpt-4o-mini`.
+
+**¿El bot puede enviar imágenes?** Sí, imágenes y imágenes con texto. Defines una galería por
+negocio en `config/businesses.yaml` (bloque `media:` con `clave → {url, desc}`, URLs públicas) y el
+bot las envía cuando corresponde escribiendo `[IMG:clave]` en su respuesta. Ejemplo: el cliente pide
+el menú → el bot manda la foto con un texto. Solo envía las imágenes que configuraste (no inventa URLs).
 
 **Para los anuncios, ¿qué es más fácil: Zernio o un token de Meta?** Zernio, sin comparación.
 Solo conectas tu cuenta de Meta Ads a Zernio (1 clic con OAuth en el dashboard) y reutilizas la

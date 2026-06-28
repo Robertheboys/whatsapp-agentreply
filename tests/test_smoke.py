@@ -113,6 +113,27 @@ def test_globos_por_parrafos_y_tope():
     assert "cuatro" in globos[-1] and "cinco" in globos[-1]  # exceso unido al último
 
 
+def test_parsear_respuesta_imagen_con_caption():
+    media = {"menu": {"url": "https://x.com/menu.jpg", "desc": "Menú"}}
+    r = "¡Claro! Aquí tienes nuestro menú 😋\n[IMG:menu]"
+    partes = brain.parsear_respuesta(r, media)
+    assert partes == [("imagen", "https://x.com/menu.jpg", "¡Claro! Aquí tienes nuestro menú 😋")]
+
+
+def test_parsear_respuesta_texto_y_luego_imagen():
+    media = {"local": {"url": "https://x.com/local.jpg", "desc": "Local"}}
+    r = "Hola, te ayudo.\n---\nEste es nuestro local\n[IMG:local]"
+    partes = brain.parsear_respuesta(r, media)
+    assert partes[0] == ("texto", "Hola, te ayudo.", None)
+    assert partes[1] == ("imagen", "https://x.com/local.jpg", "Este es nuestro local")
+
+
+def test_parsear_respuesta_clave_invalida_queda_texto():
+    r = "Mira esto [IMG:noexiste]"
+    partes = brain.parsear_respuesta(r, media={})
+    assert partes == [("texto", "Mira esto", None)]
+
+
 def _run_all():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     fallos = 0
