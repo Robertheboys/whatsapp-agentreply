@@ -120,13 +120,27 @@ def cargar_negocios(path: str = CONFIG_PATH) -> dict[str, BusinessConfig]:
             meta_ad_account_id: "act_123"   # opcional
             system_prompt: |
               Eres Sofía...
-    """
-    ruta = Path(path)
-    if not ruta.is_file():
-        logger.error("No existe %s. Crea uno desde config/businesses.example.yaml.", path)
-        return {}
 
-    data = yaml.safe_load(ruta.read_text(encoding="utf-8")) or {}
+    Fuentes (en orden):
+      1. Variable de entorno BUSINESSES_YAML con el contenido YAML directo — útil para
+         Railway/Docker, donde montar archivos es incómodo.
+      2. El archivo `path` (por defecto config/businesses.yaml).
+    """
+    yaml_env = os.getenv("BUSINESSES_YAML", "").strip()
+    if yaml_env:
+        logger.info("Cargando negocios desde la variable de entorno BUSINESSES_YAML.")
+        data = yaml.safe_load(yaml_env) or {}
+    else:
+        ruta = Path(path)
+        if not ruta.is_file():
+            logger.error(
+                "No existe %s y BUSINESSES_YAML no está definida. "
+                "Crea uno desde config/businesses.example.yaml.",
+                path,
+            )
+            return {}
+        data = yaml.safe_load(ruta.read_text(encoding="utf-8")) or {}
+
     negocios_raw = data.get("businesses") or []
 
     indice: dict[str, BusinessConfig] = {}

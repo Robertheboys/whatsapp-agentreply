@@ -134,6 +134,23 @@ def test_parsear_respuesta_clave_invalida_queda_texto():
     assert partes == [("texto", "Mira esto", None)]
 
 
+def test_businesses_yaml_env():
+    from agent import config
+
+    os.environ["BUSINESSES_YAML"] = (
+        "businesses:\n"
+        "  - zernio_account_id: acct_env\n"
+        "    nombre: Negocio Env\n"
+        "    modelo: openai/gpt-4o-mini\n"
+    )
+    try:
+        negocios = config.cargar_negocios(path="config/__no_existe__.yaml")
+        assert "acct_env" in negocios
+        assert negocios["acct_env"].nombre == "Negocio Env"
+    finally:
+        del os.environ["BUSINESSES_YAML"]
+
+
 def _run_all():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     fallos = 0

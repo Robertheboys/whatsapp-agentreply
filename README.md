@@ -176,6 +176,10 @@ Es el camino recomendado para usuarios sin experiencia técnica.
 4. **Tú** pegas esa URL en **Zernio → Webhooks** (`https://<url-railway>/webhook`), con tu
    `ZERNIO_WEBHOOK_SECRET` y el evento `message.received`. (Esto lo haces tú porque es tu cuenta de Zernio.)
 
+> 💡 **Negocios en Railway sin subir archivos:** en Railway no montas archivos fácilmente, así que
+> en vez de `config/businesses.yaml` puedes pegar el YAML completo en la variable **`BUSINESSES_YAML`**
+> (Variables del servicio). El kit la usa automáticamente si está definida.
+
 > Notas: Railway cuesta ~$5/mes tras el crédito gratis inicial. Activa un **volumen** en `/app/data`
 > para que la memoria SQLite no se borre entre redeploys. Si tu agente no soporta MCP (p. ej. ChatGPT
 > web), sigue los mismos pasos a mano en el panel de Railway — es un formulario de variables.
