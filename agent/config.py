@@ -3,8 +3,9 @@
 Lee config/businesses.yaml y construye un índice { zernio_account_id: BusinessConfig }
 para que el webhook enrute cada mensaje al negocio correcto según el account.id de Zernio.
 
-Soporta también la variable de entorno BUSINESSES_YAML con el contenido YAML directo
-(útil en Railway/Docker donde el archivo no está en el repo).
+Cada negocio define su propia personalidad (system prompt), modelo de OpenRouter y,
+opcionalmente, su cuenta de anuncios de Meta. El conocimiento de la carpeta
+config/knowledge/<carpeta>/ se incorpora al system prompt.
 """
 
 from __future__ import annotations
@@ -21,10 +22,12 @@ logger = logging.getLogger("agente")
 CONFIG_PATH = os.getenv("BUSINESSES_CONFIG", "config/businesses.yaml")
 KNOWLEDGE_DIR = os.getenv("KNOWLEDGE_DIR", "config/knowledge")
 
+# Modelo por defecto si un negocio no especifica uno (configurable y barato).
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "openai/gpt-4o-mini")
 
+# Extensiones de texto que se incorporan al prompt desde la carpeta de conocimiento.
 KNOWLEDGE_EXTS = {".txt", ".md", ".csv", ".json", ".yaml", ".yml"}
-KNOWLEDGE_MAX_CHARS = 12000
+KNOWLEDGE_MAX_CHARS = 12000  # corte de seguridad por negocio
 
 
 @dataclass
@@ -86,24 +89,28 @@ class BusinessConfig:
 
 def cargar_negocios(path: str = CONFIG_PATH) -> dict[str, BusinessConfig]:
     """
-    Carga la config de negocios desde:
-    1. Variable de entorno BUSINESSES_YAML (contenido YAML directo) — para Railway/Docker.
-    2. Archivo config/businesses.yaml — para desarrollo local.
-    """
-    # Prioridad 1: variable de entorno con el YAML completo
-    yaml_env = os.getenv("BUSINESSES_YAML", "").strip()
-    if yaml_env:
-        logger.info("Cargando negocios desde variable de entorno BUSINESSES_YAML.")
-        data = yaml.safe_load(yaml_env) or {}
-    else:
-        # Prioridad 2: archivo en disco
-        ruta = Path(path)
-        if not ruta.is_file():
-            logger.error("No existe %s y BUSINESSES_YAML no está definida.", path)
-            return {}
-        data = yaml.safe_load(ruta.read_text(encoding="utf-8")) or {}
+    Carga config/businesses.yaml → { zernio_account_id: BusinessConfig }.
 
+    Formato del YAML:
+        businesses:
+          - zernio_account_id: "acct_xxx"
+            nombre: "Mi Negocio"
+            agente: "Sofía"
+            modelo: "openai/gpt-4o-mini"
+            tono: "amigable"
+            knowledge_dir: "mi-negocio"
+            meta_ad_account_id: "act_123"   # opcional
+            system_prompt: |
+              Eres Sofía...
+    """
+    ruta = Path(path)
+    if not ruta.is_file():
+        logger.error("No existe %s. Crea uno desde config/businesses.example.yaml.", path)
+        return {}
+
+    data = yaml.safe_load(ruta.read_text(encoding="utf-8")) or {}
     negocios_raw = data.get("businesses") or []
+
     indice: dict[str, BusinessConfig] = {}
     for item in negocios_raw:
         account_id = str(item.get("zernio_account_id") or "").strip()
@@ -124,7 +131,7 @@ def cargar_negocios(path: str = CONFIG_PATH) -> dict[str, BusinessConfig]:
         indice[account_id] = cfg
 
     if not indice:
-        logger.error("No se encontraron negocios válidos en la configuración.")
+        logger.error("config/businesses.yaml no tiene negocios válidos.")
     else:
         logger.info("Negocios cargados: %s", ", ".join(c.nombre for c in indice.values()))
     return indice
